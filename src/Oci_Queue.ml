@@ -26,8 +26,8 @@
     Async_stream seems deprecated and doesn't keep previous value
  *)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 type 'a queue =
   | Eof
@@ -70,7 +70,9 @@ let create () =
 
 
 let reader t =
-  Pipe.init (fun writer ->
+  Pipe.create_reader
+    ~close_on_exception:false
+    (fun writer ->
       let rec get q =
         q
         >>= function

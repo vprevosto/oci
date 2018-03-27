@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 
 module Pp = Oci_pp
@@ -38,7 +38,7 @@ let unlink_no_fail filename =
   (* | Error exn -> raise exn *)
 
 let unlink_no_fail_blocking filename =
-  let open Core.Std in
+  let open Core in
   (* Sys.file_exists follows symlink *)
   try
     ignore (Unix.lstat filename);
@@ -81,11 +81,11 @@ let read_if_exists file bin_reader_t f =
     )
 
 external wait4: Caml.Unix.wait_flag list -> int ->
-  int * Caml.Unix.process_status * Core.Core_unix.Resource_usage.t = "oci_wait4"
+  int * Caml.Unix.process_status * Core.Unix.Resource_usage.t = "oci_wait4"
 let wait4 pid =
   let pid = (Pid.to_int pid) in
   In_thread.syscall_exn ~name:"wait4"
     (fun () -> wait4 [] pid)
   >>= fun (pid',status,ru) ->
   assert (pid' = pid);
-  return (Core.Core_unix.Exit_or_signal.of_unix status, ru)
+  return (Core.Unix.Exit_or_signal.of_unix status, ru)

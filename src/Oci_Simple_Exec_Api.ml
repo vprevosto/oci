@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 type run_query = {
   prog: string;

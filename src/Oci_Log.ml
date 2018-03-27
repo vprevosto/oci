@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 let version = 2
 
@@ -156,15 +156,15 @@ module Make(S: sig
     return (Oci_Filename.make_absolute d (to_string id))
 
   let read_from_file id =
-    Pipe.init (fun w ->
+    Pipe.create_reader
+      ~close_on_exception:false
+      (fun w ->
         log_file id
         >>= fun file ->
         Reader.open_file file
         >>= fun reader ->
-        let pipe,_ = Unpack_sequence.unpack_into_pipe
-            ~from:(Unpack_sequence.Unpack_from.Reader reader)
-            ~using:(Unpack_buffer.create_bin_prot
-                      (bin_reader_line S.bin_reader_t)) in
+        let prot = bin_reader_line S.bin_reader_t in
+        let pipe = Reader.(read_all reader (fun r -> read_bin_prot r prot)) in
         Pipe.transfer_id pipe w
         >>= fun () ->
         Reader.close reader

@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 type idmap = {
   extern_id: Oci_Common.User.t;

@@ -153,7 +153,7 @@ val sprintf :
 val sprintf_wnl :
   ('b,  formatter, unit, string) Pervasives.format4 -> 'b
 
-val to_sexp: ('a -> Core.Std.Sexp.t) -> Format.formatter -> 'a -> unit
+val to_sexp: ('a -> Core.Sexp.t) -> Format.formatter -> 'a -> unit
 
 module Ansi :
 sig

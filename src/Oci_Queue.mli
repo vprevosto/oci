@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Async.Std
+open Async
 
 (** A queue where elements can't be removed. Can be also seen as a
     pipe that return the same elements to all the readers. Keep in

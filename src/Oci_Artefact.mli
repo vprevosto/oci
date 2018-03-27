@@ -21,8 +21,8 @@
 (**************************************************************************)
 
 (** Manage directory resulting from a task execution *)
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 type t = Oci_Common.Artefact.t
 
@@ -66,20 +66,20 @@ val run: unit -> never_returns
 
 type slot
 
-val alloc_slot: unit -> slot Async.Std.Deferred.t
+val alloc_slot: unit -> slot Async.Deferred.t
 
 val start_runner:
   ?slot:slot ->
   debug_info:string ->
   binary_name:string ->
   unit ->
-  (unit Or_error.t Deferred.t * runner) Async.Std.Deferred.t
+  (unit Or_error.t Deferred.t * runner) Async.Deferred.t
 (** Start the given runner in a namespace and start an Rpc connection.
     `start_runner ~binary_name` start the executable
     [binary_name^".native"] located in the directory of binaries *)
 
-val runner_conn: runner -> Async.Std.Rpc.Connection.t Deferred.t option
-val runner_conn_or_never: runner -> Async.Std.Rpc.Connection.t Deferred.t
+val runner_conn: runner -> Async.Rpc.Connection.t Deferred.t option
+val runner_conn_or_never: runner -> Async.Rpc.Connection.t Deferred.t
 
 val freeze_runner: runner -> unit Deferred.t
 val unfreeze_runner: runner -> slot -> unit Deferred.t

@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 let test_succ = Oci_Data.register
     ~name:"succ"

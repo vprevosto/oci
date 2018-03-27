@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 open Log.Global
 
@@ -108,20 +108,20 @@ type reusable = {
 let reusable_id r = Oci_Artefact.runner_id r.runner
 
 let reusable_runner
-    ~(hashable_key:'k Hashtbl.Hashable.t)
+    ~hashable_key
     ~debug_info
     ~binary_name
     ?(timeout=Time.Span.create ~sec:10 ())
     ?error
     (f: first:bool -> runner -> 'k -> 'd -> 'a Deferred.t) =
-  let h = Hashtbl.create ~hashable:hashable_key () in
+  let h = Hashtbl.create (Base.Hashable.to_key hashable_key) in
   let scheduled (_,event) =
     match Clock.Event.status event with
-    | `Aborted _ ->
+    | Aborted _ ->
       Log.Global.error "reusable runner aborted still in reusable list";
       false
-    | `Scheduled_at _ -> true
-    | `Happened _ -> false in
+    | Scheduled_at _ -> true
+    | Happened _ -> false in
   Clock.run_at_intervals
     ~continue_on_error:true
     (Time.Span.create ~min:1 ())
@@ -151,12 +151,12 @@ let reusable_runner
         then Hashtbl.set h ~key:k ~data:l
         else Hashtbl.remove h k;
         match Clock.Event.abort event () with
-        | `Previously_happened _ -> find_available ()
-        | `Previously_aborted _ ->
+        | Previously_happened _ -> find_available ()
+        | Previously_aborted _ ->
           Log.Global.error "Reusable runner %i aborted still in reusable list"
             (reusable_id reusable);
           find_available ()
-        | `Ok ->
+        | Ok ->
           match Deferred.peek reusable.wait with
           | None ->
             Log.Global.debug "Reuse runner %i for %s"
@@ -282,9 +282,9 @@ module Make(Query : Hashtbl.Key_binable) (Result : Binable.S) = struct
             permanent_directory S.data
             >>= fun dir ->
             let file = Oci_Filename.make_absolute dir "data" in
-            Async.Std.Log.Global.debug "Load master %s" name;
+            Async.Log.Global.debug "Load master %s" name;
             if not (H.is_empty db) then begin
-              Async.Std.Log.Global.error
+              Async.Log.Global.error
                 "Master %s have already been loaded" name;
               H.clear db;
             end;
@@ -296,7 +296,7 @@ module Make(Query : Hashtbl.Key_binable) (Result : Binable.S) = struct
                        match H.add db ~key:q ~data:l with
                        | `Ok -> ()
                        | `Duplicate ->
-                         Async.Std.Log.Global.error
+                         Async.Log.Global.error
                            "Duplicate key %s"
                            (Sexp.to_string_hum ~indent:1
                               (Query.sexp_of_t q))

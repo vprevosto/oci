@@ -24,7 +24,7 @@
 
 (** We can't use Async since we must play with forks and async doesn't
     like that *)
-open Core.Std
+open Core
 open ExtUnix.Specific
 
 let mkdir ?(perm=0o750) dir =
@@ -101,8 +101,8 @@ let do_chroot dest =
 
 let read_in_file fmt =
   Printf.ksprintf (fun file ->
-      let c = open_in file in
-      let v = input_line c in
+      let c = In_channel.create file in
+      let v = In_channel.input_line c in
       In_channel.close c;
       v
     ) fmt
@@ -113,19 +113,20 @@ let test_userns_availability () =
     "/proc/sys/kernel/unprivileged_userns_clone" in
   if Sys.file_exists_exn unpriviledge_userns_clone then begin
     let v = read_in_file "%s" unpriviledge_userns_clone in
-    if v <> "1" then begin
+    match v with
+    | Some "1" -> ()
+    | Some _ | None ->
       Printf.eprintf "This kernel is configured to disable unpriviledge user\
                       namespace: %s must be 1\n" unpriviledge_userns_clone;
       exit 1
-    end
   end
 
 let write_in_file fmt =
   Printf.ksprintf (fun file ->
       Printf.ksprintf (fun towrite ->
           try
-            let cout = open_out file in
-            output_string cout towrite;
+            let cout = Out_channel.create file in
+            Out_channel.output_string cout towrite;
             Out_channel.close cout
           with _ ->
             Printf.eprintf "Error during write of %s in %s\n"

@@ -21,7 +21,7 @@
 (**************************************************************************)
 
 
-open Core.Std
+open Core
 open Oci_Common
 open ExtUnix.Specific
 open Oci_Wrapper_Lib
@@ -74,14 +74,14 @@ let run_inside f =
     (* remove the process from the group of the process monitor, and
     detach it from the controlling terminal. It allows to manage the
     shutdown nicely *)
-    let _sessionid = Core.Std.Caml.Unix.setsid () in
+    let _sessionid = Core.Caml.Unix.setsid () in
     test_userns_availability ();
     (* Option.iter rootfs ~f:(mkdir ~perm:0o750); *)
     go_in_userns idmaps;
     (* group must be changed before uid... *)
     setresgid rungid rungid rungid;
     setresuid runuid runuid runuid;
-    let _sessionid = Core.Std.Caml.Unix.setsid () in
+    let _sessionid = Core.Caml.Unix.setsid () in
     f ()
   end ()
 
@@ -92,7 +92,7 @@ let exec prog args =
         (Unix.exec
            ~prog
            ~env:(`Replace default_env)
-           ~args:(prog::args) ()))
+           ~argv:(prog::args) ()))
 
 let clean dryrun =
   let prog = "rm" in

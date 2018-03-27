@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Oci_Common
 
 open Log.Global
@@ -454,11 +454,11 @@ let read_cpuinfo () =
           match !processor, !core_id, !physical_id with
           | Some processor, Some core_id, Some physical_id -> begin
             let cpu_data = {processor;physical_id;core_id} in
-            match Int.Table.add_or_error cpu_datas
+            match Int.Table.add cpu_datas
                     ~key:cpu_data.processor
                     ~data:cpu_data with
-            | Ok () -> read_processor cin
-            | Error _ ->
+            | `Ok -> read_processor cin
+            | `Duplicate ->
               error "Error during /proc/cpuinfo parsing: duplicate processor";
               Caml.Pervasives.exit 1
             end
@@ -498,8 +498,13 @@ let partition_cpus cpuinfo cpus =
   List.filter_map
       cpuinfo.layout
       ~f:(fun l ->
-          match List.filter_map l ~f:(fun s ->
-              if List.mem cpus s.processor then Some s.processor else None) with
+          match
+            List.filter_map l
+              ~f:(fun s ->
+                  if List.mem cpus s.processor ~equal:Int.equal
+                  then Some s.processor
+                  else None)
+          with
           | [] -> None
           | l -> Some l)
 

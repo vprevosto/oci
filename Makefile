@@ -141,9 +141,10 @@ bin/%:tests/library/%.ml force compile
 	ocamlfind ocamlopt -thread -linkpkg -package oci.$(patsubst oci_default_%,%,$*) $< -o $@
 
 tests: compile
-	bin/Oci_Monitor.native --binaries bin-test --master	\
-	bin-test/tests_master.native --oci-data test-oci-data	\
-	--cpuinfo --verbose Debug
+	bin/Oci_Monitor.native --binaries bin --binaries bin-test \
+          --master tests_master.native \
+          --oci-data test-oci-data	\
+	  --cpuinfo --verbose Debug
 
 .PHONY: headers
 

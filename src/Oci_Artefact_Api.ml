@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Oci_Common
 open Oci_Std
 
@@ -103,7 +103,7 @@ let start_in_namespace
     >>= fun conn ->
     let conn = Result.ok_exn conn in
     Deferred.upon
-      (Rpc.Connection.close_reason conn)
+      (Rpc.Connection.close_reason ~on_close:`finished conn)
       (fun reason ->
          debug "Connection in %s{.in/.out} is closed : %s"
            named_pipe

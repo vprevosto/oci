@@ -21,8 +21,8 @@
 (**************************************************************************)
 
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Oci_Common
 
 open Log.Global
@@ -842,7 +842,7 @@ let run () =
     conn_monitor ()
     >>> fun conn_monitor ->
     don't_wait_for begin
-      Rpc.Connection.close_reason conn_monitor
+      Rpc.Connection.close_reason ~on_close:`finished conn_monitor
       >>= fun reason ->
       error "Monitor connection closed: %s" (Info.to_string_hum reason);
       Oci_Artefact_Api.oci_shutdown 1
@@ -935,7 +935,7 @@ let run () =
     Async_shell.run "rm" ["-f";"--";socket]
     >>> fun () ->
     Rpc.Connection.serve
-      ~where_to_listen:(Tcp.on_file socket)
+      ~where_to_listen:(Async_extra.Tcp.Where_to_listen.of_file socket)
       ~initial_connection_state:(fun _ _ -> {
             id = -2;
             conn = `Init;

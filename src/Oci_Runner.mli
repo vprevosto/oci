@@ -20,14 +20,14 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 type 'r t
 
 val start:
   implementations:
-    Async.Std.Rpc.Connection.t Rpc.Implementation.t list ->
+    Async.Rpc.Connection.t Rpc.Implementation.t list ->
   never_returns
 (** The runner waits for request. *)
 
@@ -38,12 +38,12 @@ exception StopQuery
 val implement:
   ('query,'result) Oci_Data.t ->
   ('result t -> 'query -> 'result Deferred.t) ->
-  Async.Std.Rpc.Connection.t Rpc.Implementation.t
+  Async.Rpc.Connection.t Rpc.Implementation.t
 
 val implement_unit:
   ('query,'result) Oci_Data.t ->
   ('result t -> 'query -> unit Deferred.t) ->
-  Async.Std.Rpc.Connection.t Rpc.Implementation.t
+  Async.Rpc.Connection.t Rpc.Implementation.t
 
 type artefact = Oci_Common.Artefact.t [@@deriving sexp, bin_io]
 
@@ -115,11 +115,11 @@ type 'a process_create
 val print_cmd: string -> string list -> string
 
 val run: 'r t ->
-  Core.Std.Unix.Exit_or_signal.t process_create
+  Core.Unix.Exit_or_signal.t process_create
 
 val run_timed: 'r t ->
  ?timelimit:Time.Span.t -> (* soft limit, wall clock *)
- (Core.Std.Unix.Exit_or_signal.t * Oci_Common.Timed.t)
+ (Core.Unix.Exit_or_signal.t * Oci_Common.Timed.t)
   process_create
 
 exception CommandFailed

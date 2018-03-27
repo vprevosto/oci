@@ -20,10 +20,10 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 include FilePath
-open Core.Std
+open Core
 
 (* include FilePath.UnixPath *)
 

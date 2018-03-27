@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 type rootfs_info = {
   distribution: string;

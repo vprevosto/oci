@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 type rootfs_info = {
   distribution: string;
@@ -40,6 +40,8 @@ module Rootfs = struct
       info: rootfs_info;
       rootfs: Oci_Common.Artefact.t;
     } [@@deriving sexp, bin_io]
+
+    let hash_fold_t s _ = s
 
     let compare x y = Rootfs_Id.compare x.id y.id
     let hash x = Rootfs_Id.hash x.id

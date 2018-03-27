@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 let () =
   don't_wait_for (Oci_Client.Cmdline.default_cmdline

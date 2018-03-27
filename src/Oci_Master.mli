@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 (** {2 Simple API} *)
 
@@ -150,7 +150,7 @@ val start_runner:
   binary_name:string ->
   ?slot:slot ->
   unit ->
-  (unit Or_error.t Deferred.t * runner) Async.Std.Deferred.t
+  (unit Or_error.t Deferred.t * runner) Async.Deferred.t
 (** Start the given runner in a namespace and start an Rpc connection.
     `start_runner ~binary_name` start the executable
     [binary_name^".native"] located in the directory of binaries.
@@ -173,7 +173,7 @@ val reusable_runner:
 val stop_runner: runner -> unit Deferred.t
 (** Ask or force the runner to stop *)
 
-val alloc_slot: unit -> slot Async.Std.Deferred.t
+val alloc_slot: unit -> slot Async.Deferred.t
 
 val freeze_runner: runner -> unit Deferred.t
 val unfreeze_runner: runner -> slot -> unit Deferred.t

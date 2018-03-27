@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 open Oci_Generic_Masters_Api.CompileGitRepoRunner
 
@@ -42,21 +42,21 @@ let create_dir t (q:Query.t) =
   return working_dir
 
 let memory_resource =
-  match Core.Std.Unix.RLimit.virtual_memory with
+  match Core.Unix.RLimit.virtual_memory with
   | Ok r -> r
-  | Error _ -> Core.Std.Unix.RLimit.data_segment
+  | Error _ -> Core.Unix.RLimit.data_segment
 
 (** work because we don't run tests in parallel,
     and because we suppose this runner doesn't take too much memory *)
 let memlimit f m =
   let setrlimit m =
     In_thread.syscall_exn ~name:"setrlimit"
-      Core.Std.Unix.RLimit.(fun () ->
+      Core.Unix.RLimit.(fun () ->
           set memory_resource m)
   in
   let getrlimit () =
     In_thread.syscall_exn ~name:"getrlimit"
-      Core.Std.Unix.RLimit.(fun () ->
+      Core.Unix.RLimit.(fun () ->
           get memory_resource)
   in
   getrlimit ()
@@ -121,7 +121,7 @@ let run_cmds t kind working_dir
                ~working_dir:(Oci_Filename.make_absolute working_dir
                                cmd.working_dir)
                ~prog:cmd.cmd ~args
-               ~env:(cmd.env :> Async.Std.Process.env) ()
+               ~env:(cmd.env :> Async.Process.env) ()
            )
          >>= fun r ->
          match kind, r with

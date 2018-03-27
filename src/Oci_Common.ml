@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 module Artefact = struct
   type t = Int.t [@@deriving sexp, compare, bin_io]

@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 open Oci_Simple_Exec_Api
 
@@ -38,7 +38,7 @@ let implementations =
     ~on_unknown_rpc:`Raise
 
 let () =
-  Tcp.connect (Tcp.to_file Sys.argv.(1))
+  Tcp.connect (Tcp.Where_to_connect.of_file Sys.argv.(1))
   >>> fun (_,reader,writer) ->
   Rpc.Connection.create
     ~heartbeat_config:Oci_Artefact_Api.heartbeat_config

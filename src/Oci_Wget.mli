@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Async.Std
+open Async
 
 val download_file:
   kind:[`MD5] -> checksum:string -> url:string ->

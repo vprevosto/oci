@@ -21,8 +21,8 @@
 (**************************************************************************)
 
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 open Oci_Client.Cmdline
 

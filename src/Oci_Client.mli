@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Oci_Common
 
 module Git: sig
@@ -104,7 +104,7 @@ module Git: sig
 
   val repo:
     ?save_artefact:bool ->
-    ?deps:Core.Std.String.t list ->
+    ?deps:Core.String.t list ->
     ?cmds:cmd list ->
     ?tests:cmd list ->
     unit ->
@@ -123,19 +123,19 @@ module Git: sig
 
   type connection
   val socket_of_connection:
-    connection -> Async_extra.Import.Rpc_kernel.Connection.t
+    connection -> Async_extra.Rpc.Connection.t
 
   type compile_and_tests =
     [ `Artefact of Artefact.t
     | `Cmd of exec * Unix.Exit_or_signal.t * Timed.t
-    | `Dependency_error of Core.Std.String.Set.t ]
+    | `Dependency_error of Core.String.Set.t ]
 
   val pp: Format.formatter -> compile_and_tests -> unit
 
   val compile_and_tests:
     connection -> t ->
-    (compile_and_tests Oci_Log.line Async_kernel.Std.Pipe.Reader.t)
-      Async_kernel.Std.Deferred.t
+    (compile_and_tests Oci_Log.line Async_kernel.Pipe.Reader.t)
+      Async_kernel.Deferred.t
 
   type xpra = [compile_and_tests | `XpraDir of Oci_Filename.t ]
 
@@ -143,8 +143,8 @@ module Git: sig
 
   val xpra:
     connection -> t ->
-    (xpra Oci_Log.line Async_kernel.Std.Pipe.Reader.t)
-      Async_kernel.Std.Deferred.t
+    (xpra Oci_Log.line Async_kernel.Pipe.Reader.t)
+      Async_kernel.Deferred.t
 
   val merge_base:
     connection ->
@@ -218,10 +218,10 @@ module Cmdline: sig
     val mk_param :
       default:'a ->
       ?sexp_of:('a -> Sexplib.Sexp.t) ->
-      of_sexp:(Async.Std.Sexp.t -> 'a) ->
+      of_sexp:(Async.Sexp.t -> 'a) ->
       to_option_hum:('a -> string) ->
       cmdliner:'a option Cmdliner.Term.t ->
-      'b Core.Std.String.Table.key_ -> ('a, 'a) param
+      'b Core.String.Table.key_ -> ('a, 'a) param
 
     val mk_param':
       default:'a ->
@@ -334,12 +334,12 @@ module Cmdline: sig
     (repo * WP.ParamValue.t) Deferred.t
 
   type cmds_without_connection =
-    [ `Error | `Ok ] Async.Std.Deferred.t Cmdliner.Term.t *
+    [ `Error | `Ok ] Async.Deferred.t Cmdliner.Term.t *
     Cmdliner.Term.info
 
   type cmds_with_connection =
     (Git.connection ->
-     [ `Error | `Ok ] Async.Std.Deferred.t) Cmdliner.Term.t *
+     [ `Error | `Ok ] Async.Deferred.t) Cmdliner.Term.t *
     Cmdliner.Term.info
 
 
@@ -363,9 +363,9 @@ module Cmdline: sig
     'a ->
     ('a -> Sexplib.Type.t) ->
     (Format.formatter -> 'b -> unit) ->
-    Git.connection -> 'c Async_kernel.Types.Deferred.t
+    Git.connection -> 'c Async_kernel.Deferred.t
   val mk_revspec_param:
-    ?revspec:Core.Std.String.t ->
+    ?revspec:Core.String.t ->
     url:string ->
     string ->
     (string,Commit.t) WP.param

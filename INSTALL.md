@@ -36,6 +36,8 @@ OCI:
 - fileutils
 - textutils
 - ocamlbuild
+- ppx_core
+- ppx_deriving
 - ppx_here
 - ppx_fields_conv
 - ppx_compare
@@ -61,6 +63,7 @@ You can customize some part of the compilation process by running
 `./configure` in the top directory of oci. Libraries will
 be handled by `ocamlfind`.
 
+- `autoconf`
 - `./configure`
 - `make`
 - `make install`

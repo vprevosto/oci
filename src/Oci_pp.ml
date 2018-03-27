@@ -11,7 +11,7 @@
 
 (*s Pretty-print library *)
 
-open Core.Std
+open Core
 open Format
 
 type 'a printer = formatter -> 'a -> unit

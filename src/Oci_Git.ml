@@ -21,8 +21,8 @@
 (**************************************************************************)
 
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 open Log.Global
 
 module Git_Id : Int_intf.S = Int
@@ -303,7 +303,7 @@ let commit_of_revspec ~url ~revspec =
        let slow_path src =
          fetch_only_if_old src
          >>= fun () ->
-         Async_shell.run_one
+         Async_shell.run_first_line
            ~working_dir:src
            ~expect:[0;1] (* perhapse it should be expect:[0] and use the
                              none output *)
@@ -313,7 +313,7 @@ let commit_of_revspec ~url ~revspec =
        match Oci_Common.Commit.of_string revspec with
        | None -> slow_path src
        | Some  _ as commit ->
-         Async_shell.run_one
+         Async_shell.run_first_line
            ~expect:[0;1]
            "git" ["-C";src;"rev-parse";"--verify";"-q";revspec^"^{commit}"]
          >>= function
@@ -326,7 +326,7 @@ let commit_of_branch ~url ~branch =
     (fun src ->
        fetch_only_if_old src
        >>= fun () ->
-       Async_shell.run_one
+       Async_shell.run_first_line
          ~working_dir:src
          ~expect:[0;128]
          "git" ["show";"--format=%H"; "-s"; branch]
@@ -346,7 +346,7 @@ let last_commit_before ~url ~branch ~time =
     (fun src ->
        fetch_only_if_old src
        >>= fun () ->
-       Async_shell.run_one
+       Async_shell.run_first_line
          ~working_dir:src
          "git" ["log";"--before";Time.to_string time;
                 "--format=%H"; "-n"; "1"; branch; "--"]
@@ -362,12 +362,12 @@ let time_of_commit ~url ~commit =
          check_commit_availability_exn ~src commit
          >>= fun () ->
          let commit = Oci_Common.Commit.to_string commit in
-         Async_shell.run_one
+         Async_shell.run_first_line
            ~working_dir:src
            "git" ["show";"-s";"--format=%ct";commit;"--"]
          >>= function
        | None -> invalid_argf "Can't get date of commit %s." commit ()
-       | Some s -> return (Time.of_epoch (Float.of_string s))
+       | Some s -> return (Time.(add  epoch (Span.of_sec (Float.of_string s))))
     )
 
 

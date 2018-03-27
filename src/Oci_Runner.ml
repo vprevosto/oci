@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 type 'r t = {
   connection : Rpc.Connection.t;
@@ -70,12 +70,16 @@ let implement data f =
   Rpc.Pipe_rpc.implement
     (Oci_Data.log data)
     (fun connection q ->
-       let reader = Pipe.init (fun writer ->
-           Monitor.try_with_or_error ~here:[%here]
-             (fun () -> f {connection;log=writer} q)
-           >>= fun res ->
-           Oci_Log.write_and_close writer res
-         ) in
+       let reader =
+         Pipe.create_reader
+           ~close_on_exception:false
+           (fun writer ->
+              Monitor.try_with_or_error ~here:[%here]
+                (fun () -> f {connection;log=writer} q)
+              >>= fun res ->
+              Oci_Log.write_and_close writer res
+           )
+       in
        Deferred.Or_error.return reader
     )
 
@@ -85,26 +89,29 @@ let implement_unit data f =
   Rpc.Pipe_rpc.implement
     (Oci_Data.log data)
     (fun connection q ->
-       let reader = Pipe.init (fun writer ->
-           Monitor.try_with
-             ~here:[%here]
-             ~name:"Oci_Runner.implement_*"
-             ~run:`Now
-             ~rest:`Log
-             (fun () ->
-                f {connection;log=writer} q
-             )
-           >>= fun res ->
-           let res =
-             match res with
-             | Ok () -> Ok ()
-             | Error exn ->
-               match Monitor.extract_exn exn with
-               | StopQuery -> Ok ()
-               | _ -> Or_error.of_exn exn
-           in
-           Oci_Log.close_writer writer res
-         )
+       let reader =
+         Pipe.create_reader
+           ~close_on_exception:false
+           (fun writer ->
+              Monitor.try_with
+                ~here:[%here]
+                ~name:"Oci_Runner.implement_*"
+                ~run:`Now
+                ~rest:`Log
+                (fun () ->
+                   f {connection;log=writer} q
+                )
+              >>= fun res ->
+              let res =
+                match res with
+                | Ok () -> Ok ()
+                | Error exn ->
+                  match Monitor.extract_exn exn with
+                  | StopQuery -> Ok ()
+                  | _ -> Or_error.of_exn exn
+              in
+              Oci_Log.close_writer writer res
+           )
 in
 Deferred.Or_error.return reader
     )
@@ -225,8 +232,8 @@ let run t ?env ?working_dir ~prog ~args () =
   Deferred.both (process_log t p) (Process.wait p)
   >>= fun ((),r) ->
   match r with
-  | Core_kernel.Std.Result.Ok () -> return r
-  | Core_kernel.Std.Result.Error _ as error ->
+  | Core_kernel.Result.Ok () -> return r
+  | Core_kernel.Result.Error _ as error ->
     err_log t "Command %s failed: %s"
       (print_cmd prog args)
       (Unix.Exit_or_signal.to_string_hum error);
@@ -235,8 +242,8 @@ let run t ?env ?working_dir ~prog ~args () =
 let run_exn t ?env ?working_dir ~prog ~args () =
   run t ?working_dir ?env ~prog ~args ()
   >>= function
-  | Core_kernel.Std.Result.Ok () -> return ()
-  | Core_kernel.Std.Result.Error _ ->
+  | Core_kernel.Result.Ok () -> return ()
+  | Core_kernel.Result.Error _ ->
     raise CommandFailed
 
 let run_timed t ?timelimit ?env ?working_dir ~prog ~args () =
@@ -266,9 +273,9 @@ let run_timed t ?timelimit ?env ?working_dir ~prog ~args () =
   w
   >>= fun ((),(r,ru)) ->
   let stop = Unix.gettimeofday () in
-  let timed = {Oci_Common.Timed.cpu_kernel = Time.Span.of_float ru.stime;
-               Oci_Common.Timed.cpu_user = Time.Span.of_float ru.utime;
-               Oci_Common.Timed.wall_clock = Time.Span.of_float (stop -. start)}
+  let timed = {Oci_Common.Timed.cpu_kernel = Time.Span.of_ms ru.stime;
+               Oci_Common.Timed.cpu_user = Time.Span.of_ms ru.utime;
+               Oci_Common.Timed.wall_clock = Time.Span.of_ms (stop -. start)}
   in
   return (r,timed)
 

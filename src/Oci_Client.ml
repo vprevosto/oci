@@ -20,8 +20,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
-open Async.Std
+open Core
+open Async
 
 open Log.Global
 
@@ -101,14 +101,14 @@ module Git = struct
         Oci_Generic_Masters_Api.CompileGitRepoRunner.exec *
         (unit,
          Oci_Generic_Masters_Api.CompileGitRepoRunner.Result.exit_or_signal)
-          Core.Std.Result.t * Oci_Common.Timed.t
-    | `Dependency_error of Core.Std.String.Set.t ]
+          Core.Result.t * Oci_Common.Timed.t
+    | `Dependency_error of Core.String.Set.t ]
 
   let pp =
     Oci_Generic_Masters_Api.CompileGitRepo.Result.pp
 
   type connection = {
-    socket: Async_extra.Import.Rpc_kernel.Connection.t;
+    socket: Async_extra.Rpc.Connection.t;
     revspec_cache: (Oci_Generic_Masters_Api.GitCommitOfRevSpec.Query.t,
                     Oci_Common.Commit.t option Or_error.t Deferred.t)
         Hashtbl.Poly.t;
@@ -264,7 +264,7 @@ module Gnuplot = struct
     in
     let r =
       List.map l ~f:(fun (n,l) -> (n,aux [] 0. 0
-                                     (List.sort ~cmp:Float.compare l)))
+                                     (List.sort ~compare:Float.compare l)))
     in
     steps_filler r
 
@@ -277,7 +277,7 @@ module Gnuplot = struct
     in
     let r =
       List.map l ~f:(fun (n,l) -> (n,aux [0.,0.] 0. 0
-                                     (List.sort ~cmp:Float.compare l)))
+                                     (List.sort ~compare:Float.compare l)))
     in
     steps_filler r
 
@@ -392,8 +392,12 @@ module Cmdline = struct
       let sexp_of_t m = [%sexp_of: elt list] (Uid.Map.data m)
       let t_of_sexp m = List.fold ~init:Uid.Map.empty
           ([%of_sexp: elt list] m)
-          ~f:(fun acc (T(p,_) as v) -> Uid.Map.add acc
-                 ~key:(Id.uid p.id) ~data:v)
+          ~f:(fun acc (T(p,_) as v) ->
+              match
+                Uid.Map.add acc ~key:(Id.uid p.id) ~data:v
+              with
+              | `Ok acc -> acc
+              | `Duplicate -> acc)
       let empty = Uid.Map.empty
       let mem m p = Uid.Map.mem m (Id.uid p.id)
       let find (type b) t (key : (b,_) param) =
@@ -408,7 +412,11 @@ module Cmdline = struct
         | Some (T (key', value)) ->
           let Type_equal.T = Id.same_witness_exn key.id key'.id in
           (value : b)
-      let set t p v = Uid.Map.add t ~key:(Id.uid p.id) ~data:(T(p, v))
+      let set t p v =
+        let res = Uid.Map.add t ~key:(Id.uid p.id) ~data:(T(p, v)) in
+        match res with
+        | `Ok res -> res
+        | `Duplicate -> t
       let replace_by m m' =
         Uid.Map.merge m m'
           ~f:(fun ~key:_ ->
@@ -520,7 +528,7 @@ module Cmdline = struct
   let print_time fmt t =
     if Log.Global.level () = `Debug then Time.pp fmt t
     else Format.pp_print_string fmt
-        (Time.format ~zone:Time.Zone.local t "%H:%M:%S")
+        (Time.format ~zone:(Lazy.force Time.Zone.local) t "%H:%M:%S")
 
   let exec_one test input ~init ~fold sexp_input output_printer conn =
     debug "Input %s\n%!" (Sexp.to_string_hum (sexp_input input));
@@ -528,7 +536,7 @@ module Cmdline = struct
     >>= fun (p,_) ->
     let stdout = (Lazy.force Writer.stdout) in
     let fmt = Writer.to_formatter stdout in
-    let open Textutils.Std in
+    let open Textutils in
     let complete = ref false in
     Pipe.fold p ~init ~f:(fun acc -> function
         | {Oci_Log.data=Oci_Log.Std (kind,line);time}
@@ -604,12 +612,13 @@ module Cmdline = struct
   let db_repos : repo_param String.Map.t ref =
     ref String.Map.empty
 
-  let add_repo name repo =
-    db_repos := String.Map.add !db_repos ~key:name
-        ~data:(WP.const repo)
-
   let add_repo_with_param name repo =
-    db_repos := String.Map.add !db_repos ~key:name ~data:repo
+    let res = String.Map.add !db_repos ~key:name ~data:repo in
+    match res with
+    | `Ok res -> db_repos := res
+    | `Duplicate -> error "trying to add repo %s twice@." name
+
+  let add_repo name repo = add_repo_with_param name (WP.const repo)
 
   type query = Oci_Generic_Masters_Api.CompileGitRepo.Query.t
   type revspecs = WP.ParamValue.t
@@ -626,9 +635,13 @@ module Cmdline = struct
   let db_compare = ref String.Map.empty
 
   let add_compare name compare sexp_x x_sexp sexp_y y_sexp analyse =
-    db_compare :=
+    let res =
       String.Map.add !db_compare ~key:name
         ~data:(CompareN(compare,sexp_x,x_sexp,sexp_y,y_sexp,analyse))
+    in
+    match res with
+    | `Ok res -> db_compare:=res
+    | `Duplicate -> error "Trying to add comparator %s twice@." name
 
   let used_interp_repos c revspecs toprint root repos =
     let open! Oci_Generic_Masters_Api.CompileGitRepo.Query in
@@ -644,7 +657,10 @@ module Cmdline = struct
           WP.interp c revspecs [] repo
           >>= fun (repo,acc) ->
           toprint := List.fold acc ~init:!toprint ~f:String.Set.add;
-          new_repos := String.Map.add !new_repos ~key:name ~data:repo;
+          let res = String.Map.add !new_repos ~key:name ~data:repo in
+          (match res with
+           | `Ok res -> new_repos:= res
+           | `Duplicate -> error "Trying to add new repo %s twice" name);
           Deferred.List.iter repo.deps ~how:`Parallel ~f:aux
     in
     aux root
@@ -657,7 +673,7 @@ module Cmdline = struct
     connection:Git.connection ->
     root:string ->
     revspecs:WP.ParamValue.t ->
-    (repo * WP.ParamValue.t) Async.Std.Deferred.t
+    (repo * WP.ParamValue.t) Async.Deferred.t
 
   let default_create_query_hook : create_query_hook =
     fun ~connection:_ ~root ~revspecs ->
@@ -790,7 +806,15 @@ module Cmdline = struct
         >>= function (revspecs, git_repo, `Exec exec) ->
         let repo_compare = "Oci_Client.compare" in
         let repos = String.Map.add !db_repos ~key:repo_compare
-            ~data:git_repo in
+            ~data:git_repo
+        in
+        let repos =
+          match repos with
+          | `Ok r -> r
+          | `Duplicate ->
+            error "Already existing comparison repo %s@." repo_compare;
+            !db_repos
+        in
         create_query
           ~info_level:`Debug
           cq_hook rootfs revspecs repo_compare
@@ -943,7 +967,7 @@ module Cmdline = struct
       (Oci_pp.to_sexp Rootfs.sexp_of_t)
 
   let connect ccopt cmd =
-    Tcp.connect (Tcp.to_file ccopt.socket)
+    Tcp.connect (Tcp.Where_to_connect.of_file ccopt.socket)
     >>= fun (_,reader,writer) ->
     Rpc.Connection.create
       ~heartbeat_config:Oci_Artefact_Api.heartbeat_config
@@ -1087,7 +1111,7 @@ module Cmdline = struct
       >>= fun l ->
       if List.for_all ~f:(fun x -> x) l
       then
-        Deferred.all_ignore [
+        Deferred.all_unit [
           gpg_check rootfs_tar gpg;
           gpg_check meta_tar gpg
         ]
@@ -1432,12 +1456,12 @@ module Cmdline = struct
     [list_download_rootfs_cmd]
 
   type cmds_without_connection =
-    [ `Error | `Ok ] Async.Std.Deferred.t Cmdliner.Term.t *
+    [ `Error | `Ok ] Async.Deferred.t Cmdliner.Term.t *
     Cmdliner.Term.info
 
   type cmds_with_connection =
     (Git.connection ->
-     [ `Error | `Ok ] Async.Std.Deferred.t) Cmdliner.Term.t *
+     [ `Error | `Ok ] Async.Deferred.t) Cmdliner.Term.t *
     Cmdliner.Term.info
 
   let default_cmdline

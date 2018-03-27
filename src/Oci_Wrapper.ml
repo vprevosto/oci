@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 open Oci_Wrapper_Api
 open ExtUnix.Specific
 open Oci_Wrapper_Lib
@@ -54,7 +54,7 @@ let () =
     (* remove the process from the group of the process monitor, and
     detach it from the controlling terminal. It allows to manage the
     shutdown nicely *)
-    let _sessionid = Core.Std.Caml.Unix.setsid () in
+    let _sessionid = Core.Caml.Unix.setsid () in
     begin match param.cgroup with
     | None -> ()
     | Some cgroup ->
@@ -76,10 +76,10 @@ let () =
       Printf.eprintf "Error: file %s doesn't exists" param.command;
       exit 1
     end;
-    let _sessionid = Core.Std.Caml.Unix.setsid () in
+    let _sessionid = Core.Caml.Unix.setsid () in
     never_returns
       (Unix.exec
          ~prog:param.command
          ~env:(`Replace param.env)
-         ~args:(param.command::param.argv) ());
+         ~argv:(param.command::param.argv) ());
   end ()

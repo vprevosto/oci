@@ -20,18 +20,18 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 
 type ('query,'result) t
 
 val register:
   name:string ->
   version:int ->
-  bin_query:'query Core.Std.Bin_prot.Type_class.t ->
-  bin_result:'result Core.Std.Bin_prot.Type_class.t ->
+  bin_query:'query Core.Bin_prot.Type_class.t ->
+  bin_result:'result Core.Bin_prot.Type_class.t ->
   ('query,'result) t
 
-open Async.Std
+open Async
 
 exception NoResult
 

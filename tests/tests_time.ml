@@ -1,7 +1,7 @@
 
 
-open! Core.Std
-open! Async.Std
+open! Core
+open! Async
 open Oci_Std
 
 let prog, args =
@@ -21,7 +21,7 @@ let () =
           printf "process stopped\n%s\n%s\n%!"
             (Unix.Exit_or_signal.to_string_hum status)
             (Sexp.to_string_hum
-               (Core.Core_unix.Resource_usage.sexp_of_t ru));
+               (Core.Unix.Resource_usage.sexp_of_t ru));
           Shutdown.shutdown 0
         ) ()
   end

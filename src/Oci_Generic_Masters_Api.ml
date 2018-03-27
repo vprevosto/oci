@@ -20,7 +20,7 @@
 (*                                                                        *)
 (**************************************************************************)
 
-open Core.Std
+open Core
 open Oci_Std
 
 let version = 12
@@ -203,7 +203,7 @@ module CompileGitRepo = struct
           | None -> raise (MissingRepo name)
           | Some repo ->
             List.fold repo.deps
-              ~init:(String.Map.add m ~key:name ~data:repo)
+              ~init:(String.Map.set m ~key:name ~data:repo)
               ~f:aux
       in
       aux String.Map.empty t.name
